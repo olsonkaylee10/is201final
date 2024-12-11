@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flappy Bird Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #70c5ce;
+    }
+    canvas {
+      background: #8ED6FF;
+      border: 2px solid #000;
+    }
+    h1 {
+      position: absolute;
+      top: 10px;
+      text-align: center;
+      width: 100%;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <h1>Flappy Bird</h1>
+  <canvas id="flappyCanvas" width="800" height="800"></canvas>
+
+  <script>
+    const canvas = document.getElementById("flappyCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const bird = {
+      x: 100,
+      y: 150,
+      width: 20,
+      height: 20,
+      gravity: 1,
+      lift: -15,
+      velocity: 0,
+    };
+
+    const pipes = [];
+    const pipeWidth = 50;
+    const pipeGap = 200;
+    const pipeSpeed = 2;
+
+    let score = 0;
+    let record = 0; // Variable to track the highest score
+    let gameRunning = true;
+
+    function drawBird() {
+      ctx.fillStyle = "yellow";
+      ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+    }
+
+    function createPipe() {
+      const pipeHeight = Math.random() * (canvas.height / 2);
+      pipes.push({
+        x: canvas.width,
+        topHeight: pipeHeight,
+        bottomY: pipeHeight + pipeGap,
+        scored: false, // Track if the pipe has been scored
+      });
+    }
+
+    function drawPipes() {
+      ctx.fillStyle = "green";
+      pipes.forEach(pipe => {
+        ctx.fillRect(pipe.x, 0, pipeWidth, pipe.topHeight); // Top pipe
+        ctx.fillRect(pipe.x, pipe.bottomY, pipeWidth, canvas.height - pipe.bottomY); // Bottom pipe
+      });
+    }
+
+    function updatePipes() {
+      pipes.forEach(pipe => {
+        pipe.x -= pipeSpeed;
+
+        // Increment score if bird successfully passes the pipe
+        if (!pipe.scored && pipe.x + pipeWidth < bird.x) {
+          score++;
+          pipe.scored = true; // Mark the pipe as scored
+          if (score > record) {
+            record = score; // Update the record
+          }
+        }
+      });
+
+      // Remove pipes that are off-screen
+      if (pipes.length && pipes[0].x + pipeWidth < 0) {
+        pipes.shift();
+      }
+    }
+
+    function detectCollision() {
+      // Bird hits ground or top
+      if (bird.y + bird.height >= canvas.height || bird.y <= 0) {
+        return true;
+      }
+
+      // Bird hits pipes
+      for (let pipe of pipes) {
+        if (
+          bird.x + bird.width >= pipe.x &&
+          bird.x <= pipe.x + pipeWidth &&
+          (bird.y <= pipe.topHeight || bird.y + bird.height >= pipe.bottomY)
+        ) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function drawScore() {
+      ctx.fillStyle = "white";
+      ctx.font = "30px Arial";
+      ctx.fillText(`Score: ${score}`, 100, 40); // Moved score further to the right
+      ctx.fillText(`Record: ${record}`, 100, 80); // Added record display below the score
+    }
+
+    function updateBird() {
+      bird.velocity += bird.gravity;
+      bird.y += bird.velocity;
+    }
+
+    function gameLoop() {
+      if (!gameRunning) {
+        ctx.fillStyle = "black";
+        ctx.font = "40px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("Game Over! Press Space to Restart", canvas.width / 2, canvas.height / 2);
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBird();
+      drawPipes();
+      drawScore();
+
+      updateBird();
+      updatePipes();
+
+      if (detectCollision()) {
+        gameRunning = false;
+      }
+    }
+
+    // Create pipes every 1.5 seconds
+    setInterval(() => {
+      if (gameRunning) {
+        createPipe();
+      }
+    }, 1500);
+
+    // Game loop
+    setInterval(gameLoop, 20);
+
+    // Key press to make bird jump or restart game
+    document.addEventListener("keydown", event => {
+      if (event.code === "Space") {
+        if (gameRunning) {
+          bird.velocity = bird.lift;
+        } else {
+          // Restart game
+          bird.y = 150;
+          bird.velocity = 0;
+          pipes.length = 0;
+          score = 0;
+          gameRunning = true;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
